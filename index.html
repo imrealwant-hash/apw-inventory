@@ -3,32 +3,38 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>APW 進銷存管理系統</title>
+<title>APW 進銷存管理系統 (旗艦版)</title>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f5f5; color: #1a1a1a; font-size: 14px; }
-  button { cursor: pointer; font-family: inherit; font-size: 13px; padding: 5px 14px; border: 0.5px solid #ccc; border-radius: 6px; background: white; color: #1a1a1a; transition: background 0.15s; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f0f2f5; color: #1a1a1a; font-size: 14px; }
+  button { cursor: pointer; font-family: inherit; font-size: 13px; padding: 6px 14px; border: 1px solid #ccc; border-radius: 6px; background: white; color: #1a1a1a; transition: background 0.15s; }
   button:hover { background: #f0f0f0; }
   button:disabled { opacity: 0.5; cursor: not-allowed; }
-  input, select { font-family: inherit; font-size: 13px; padding: 7px 10px; border: 0.5px solid #ccc; border-radius: 6px; width: 100%; background: white; color: #1a1a1a; outline: none; }
-  input:focus, select:focus { border-color: #185fa5; box-shadow: 0 0 0 2px rgba(24,95,165,0.15); }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  input, select { font-family: inherit; font-size: 13px; padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; width: 100%; background: white; color: #1a1a1a; outline: none; }
+  input:focus, select:focus { border-color: #2E75B6; box-shadow: 0 0 0 2px rgba(46,117,182,0.15); }
+  input[readonly] { background: #f8f9fa; color: #666; cursor: not-allowed; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; background: white; }
+  th { background: #2E75B6; color: white; text-align: left; padding: 10px; position: sticky; top: 0; }
+  td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; color: #333; }
+  tr:hover td { background: #f8fbfd; }
   @keyframes spin { to { transform: rotate(360deg); } }
   @keyframes progress { 0%{width:0%} 100%{width:90%} }
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: #f0f0f0; }
-  ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb { background: #bbb; border-radius: 4px; }
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
+// https://script.google.com/macros/s/AKfycby-HhCE3zkItsQJPODYSYNeEpbo9MdO10D1_qMbF4pJL5N2EfENEViuIVvZi2uEyJ4/exec
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby-HhCE3zkItsQJPODYSYNeEpbo9MdO10D1_qMbF4pJL5N2EfENEViuIVvZi2uEyJ4/exec";
-const TABS = ["儀表板","廠商","產品","通路","進貨","銷貨","退貨","報表"];
-const fmt = n => Number(n).toLocaleString("zh-TW");
+
+const TABS = ["戰情室(報表)","產品","通路","進貨","銷貨","退貨","費用","廠商"];
+const fmt = n => Number(n).toLocaleString("zh-TW", {maximumFractionDigits: 1});
 
 async function api(action, type, data) {
   const res = await fetch(SCRIPT_URL, { method:"POST", body:JSON.stringify({action,type,data}) });
@@ -48,23 +54,23 @@ const { useState, useEffect, useMemo } = React;
 function Badge({ children, color="gray" }) {
   const map = { gray:["#f1f1f1","#555"], blue:["#e6f1fb","#185fa5"], green:["#eaf3de","#3b6d11"], amber:["#faeeda","#854f0b"], red:["#fcebeb","#a32d2d"] };
   const [bg, fg] = map[color]||map.gray;
-  return <span style={{background:bg,color:fg,fontSize:11,padding:"2px 8px",borderRadius:6,fontWeight:500}}>{children}</span>;
+  return <span style={{background:bg,color:fg,fontSize:11,padding:"3px 8px",borderRadius:6,fontWeight:bold}}>{children}</span>;
 }
 
 function Toast({ msg, type }) {
   if (!msg) return null;
   const bg = type==="error"?"#fcebeb":"#eaf3de";
   const fg = type==="error"?"#a32d2d":"#3b6d11";
-  return <div style={{position:"fixed",bottom:24,right:24,background:bg,color:fg,border:`1px solid ${fg}`,borderRadius:8,padding:"10px 18px",fontSize:13,fontWeight:500,zIndex:2000,boxShadow:"0 4px 16px rgba(0,0,0,0.12)"}}>{msg}</div>;
+  return <div style={{position:"fixed",bottom:24,right:24,background:bg,color:fg,border:`1px solid ${fg}`,borderRadius:8,padding:"10px 18px",fontSize:13,fontWeight:bold,zIndex:2000,boxShadow:"0 4px 16px rgba(0,0,0,0.12)"}}>{msg}</div>;
 }
 
 function Modal({ title, onClose, children }) {
   return (
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000}}>
-      <div style={{background:"white",borderRadius:12,border:"0.5px solid #ddd",padding:"1.5rem",minWidth:340,maxWidth:480,width:"90%",maxHeight:"85vh",overflowY:"auto",boxShadow:"0 8px 32px rgba(0,0,0,0.18)"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem"}}>
-          <h3 style={{fontSize:16,fontWeight:500}}>{title}</h3>
-          <button onClick={onClose} style={{border:"none",background:"none",fontSize:20,color:"#999",padding:"0 4px"}}>✕</button>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000}}>
+      <div style={{background:"white",borderRadius:12,padding:"1.5rem",minWidth:360,maxWidth:500,width:"90%",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 10px 40px rgba(0,0,0,0.2)"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.2rem",borderBottom:"1px solid #eee",paddingBottom:"10px"}}>
+          <h3 style={{fontSize:18,fontWeight:bold,color:"#1F3864"}}>{title}</h3>
+          <button onClick={onClose} style={{border:"none",background:"none",fontSize:20,color:"#999"}}>✕</button>
         </div>
         {children}
       </div>
@@ -72,46 +78,101 @@ function Modal({ title, onClose, children }) {
   );
 }
 
-function Field({ label, children }) {
+function Field({ label, children, inline }) {
   return (
-    <div style={{marginBottom:12}}>
-      <label style={{display:"block",fontSize:12,color:"#666",marginBottom:4}}>{label}</label>
-      {children}
+    <div style={{marginBottom:12, display:inline?"flex":"block", alignItems:"center", gap:8}}>
+      <label style={{display:"block",fontSize:12,fontWeight:bold,color:"#444",marginBottom:inline?0:4, minWidth:inline?70:"auto"}}>{label}</label>
+      <div style={{flex:1}}>{children}</div>
     </div>
   );
 }
 
-const EMPTY = {vendors:[],products:[],channels:[],purchases:[],sales:[],returns:[]};
+const EMPTY = {vendors:[],products:[],channels:[],purchases:[],sales:[],returns:[],expenses:[]};
 
 function App() {
-  const [tab, setTab] = useState("儀表板");
+  const [tab, setTab] = useState("戰情室(報表)");
   const [data, setData] = useState(EMPTY);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({});
   const [toast, setToast] = useState(null);
-  const [dateRange, setDateRange] = useState({from:"2025-01-01",to:"2026-12-31"});
+  
+  const d = new Date();
+  const firstDay = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+  const [dateRange, setDateRange] = useState({from:firstDay, to:"2026-12-31"});
 
   const showToast = (msg,type="success") => { setToast({msg,type}); setTimeout(()=>setToast(null),3000); };
 
   const loadAll = async () => {
     setLoading(true);
     try {
-      const types = ["vendors","products","channels","purchases","sales","returns"];
+      const types = ["vendors","products","channels","purchases","sales","returns","expenses"];
       const results = await Promise.all(types.map(t=>apiGet(t)));
       const next = {};
       types.forEach((t,i)=>next[t]=results[i]||[]);
       setData(next);
-    } catch(e) { showToast("載入失敗："+e.message,"error"); }
+    } catch(e) { showToast("載入失敗，請確認網址是否正確。","error"); }
     setLoading(false);
   };
 
   useEffect(()=>{loadAll();},[]);
 
+  // 🌟 表單通用更新邏輯
   const setF = k => e => setForm(f=>({...f,[k]:e.target.value}));
+
+  // 🌟 進貨專用自動計算
+  const handlePurchaseCalc = (k, v) => {
+    let f = {...form, [k]:v};
+    const nj = Number(f.nj)||0, mq = Number(f.mq)||0, cost = Number(f.unitCost)||0;
+    f.amount = (nj+mq)*cost;
+    setForm(f);
+  };
+
+  // 🌟 銷售專用自動計算 (核心手續費引擎)
+  const handleSaleCalc = (k, v) => {
+    let f = {...form, [k]:v};
+    const qty = Number(f.qty)||0;
+    const price = Number(f.unitPrice)||0;
+    f.amount = qty * price;
+
+    // 計算手續費
+    const ch = data.channels.find(c=>String(c.id)===String(f.channelId));
+    const rate = ch ? (Number(ch.rate)/100) : 0;
+    const fixed = ch ? Number(ch.fixed) : 0;
+    
+    // 只有在數量、單價、通路改變時，自動刷新手續費 (保留手動修改空間)
+    if(['qty','unitPrice','channelId'].includes(k)) {
+        f.fee = Math.round(f.amount * rate) + fixed;
+    }
+
+    // 計算毛利
+    const pr = data.products.find(p=>String(p.id)===String(f.productId));
+    const cost = pr ? Number(pr.cost) : 0;
+    f.totalCost = qty * cost;
+    f.profit = f.amount - (Number(f.fee)||0) - f.totalCost;
+    f.margin = f.amount ? (f.profit / f.amount * 100).toFixed(1) : 0;
+    
+    setForm(f);
+  };
+
   const closeModal = ()=>{setModal(null);setForm({});};
-  const openAdd = type=>{setModal({type,mode:"add"});setForm({});};
+  
+  const openAdd = type => {
+    let initial = {};
+    const d = new Date();
+    const today = d.toISOString().split('T')[0];
+    const genOrder = prefix => prefix + d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0') + String(d.getHours()).padStart(2,'0') + String(d.getMinutes()).padStart(2,'0');
+
+    if(type==="purchases") initial = {docType:"進貨", date:today, order:genOrder('P'), nj:0, mq:0};
+    if(type==="sales") initial = {docType:"正常銷售", date:today, order:genOrder('S'), qty:1};
+    if(type==="expenses") initial = {date:today};
+    if(type==="returns") initial = {date:today, qty:1};
+    
+    setModal({type,mode:"add"});
+    setForm(initial);
+  };
+  
   const openEdit = (type,row)=>{setModal({type,mode:"edit"});setForm({...row});};
 
   const save = async type => {
@@ -127,7 +188,7 @@ function App() {
   };
 
   const del = async (type,id) => {
-    if (!confirm("確定刪除？")) return;
+    if (!confirm("確定刪除？這不會退回庫存喔！")) return;
     setSaving(true);
     try {
       await api("delete",type,{id});
@@ -137,113 +198,97 @@ function App() {
     setSaving(false);
   };
 
-  const filteredSales = useMemo(()=>data.sales.filter(s=>s.date>=dateRange.from&&s.date<=dateRange.to),[data.sales,dateRange]);
-  const filteredPurchases = useMemo(()=>data.purchases.filter(p=>p.date>=dateRange.from&&p.date<=dateRange.to),[data.purchases,dateRange]);
-  const totalRevenue = filteredSales.reduce((s,x)=>s+x.qty*x.unitPrice,0);
-  const totalCost = filteredPurchases.reduce((s,x)=>s+x.qty*x.unitCost,0);
-  const totalSalesCost = filteredSales.reduce((s,x)=>{const p=data.products.find(pr=>String(pr.id)===String(x.productId));return s+(p?p.cost*x.qty:0);},0);
-  const grossProfit = totalRevenue-totalSalesCost;
-  const lowStock = data.products.filter(p=>+p.stock<=5);
-
-  const salesByChannel = useMemo(()=>{
-    const map={};
-    filteredSales.forEach(s=>{const ch=data.channels.find(c=>String(c.id)===String(s.channelId));const name=ch?ch.name:"未知";map[name]=(map[name]||0)+s.qty*s.unitPrice;});
-    return Object.entries(map).sort((a,b)=>b[1]-a[1]);
-  },[filteredSales,data.channels]);
+  // 📊 戰情室數據計算
+  const fSales = useMemo(()=>data.sales.filter(s=>s.date>=dateRange.from&&s.date<=dateRange.to),[data.sales,dateRange]);
+  const fExp = useMemo(()=>data.expenses.filter(e=>e.date>=dateRange.from&&e.date<=dateRange.to),[data.expenses,dateRange]);
+  
+  const totalRev = fSales.reduce((s,x)=>s+Number(x.amount),0);
+  const totalFee = fSales.reduce((s,x)=>s+Number(x.fee),0);
+  const totalCost = fSales.reduce((s,x)=>s+Number(x.totalCost),0);
+  const totalProfit = fSales.reduce((s,x)=>s+Number(x.profit),0); // 訂單毛利
+  const totalExpAmt = fExp.reduce((s,x)=>s+Number(x.amount),0);
+  const netProfit = totalProfit - totalExpAmt; // 🏆 真實淨利
+  const overallMargin = totalRev ? (totalProfit/totalRev*100).toFixed(1) : 0;
 
   const salesByProduct = useMemo(()=>{
     const map={};
-    filteredSales.forEach(s=>{const pr=data.products.find(p=>String(p.id)===String(s.productId));const name=pr?pr.name:"未知";map[name]=(map[name]||0)+s.qty*s.unitPrice;});
-    return Object.entries(map).sort((a,b)=>b[1]-a[1]);
-  },[filteredSales,data.products]);
+    fSales.forEach(s=>{ const pr=data.products.find(p=>String(p.id)===String(s.productId)); const name=pr?pr.name:"未知"; map[name]=(map[name]||0)+Number(s.amount); });
+    return Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0, 10); // 取 TOP 10
+  },[fSales,data.products]);
 
-  const maxCh = salesByChannel.length?Math.max(...salesByChannel.map(x=>x[1])):1;
-  const maxPr = salesByProduct.length?Math.max(...salesByProduct.map(x=>x[1])):1;
-
-  const sc = (label,value,color="#1a1a1a") => (
-    <div style={{background:"#f5f5f5",borderRadius:8,padding:"0.9rem 1rem",flex:1,minWidth:120}}>
-      <div style={{fontSize:11,color:"#888",marginBottom:4}}>{label}</div>
-      <div style={{fontSize:20,fontWeight:500,color}}>{value}</div>
+  const sc = (label,value,color="#1a1a1a", bg="#fff") => (
+    <div style={{background:bg, border:"1px solid #ddd", borderRadius:8, padding:"15px", flex:1, minWidth:160, textAlign:"center", boxShadow:"0 2px 5px rgba(0,0,0,0.02)"}}>
+      <div style={{fontSize:12, color:"#666", marginBottom:8, fontWeight:bold}}>{label}</div>
+      <div style={{fontSize:22, fontWeight:bold, color}}>{value}</div>
     </div>
   );
 
-  const th = {textAlign:"left",padding:"8px 10px",borderBottom:"1px solid #eee",color:"#888",fontSize:12,fontWeight:500};
-  const td = {padding:"8px 10px",borderBottom:"1px solid #f0f0f0",color:"#1a1a1a"};
-  const inp = {width:"100%"};
+  const th = {textAlign:"left"};
+  const td = {fontSize:12};
 
-  const addBtn = (label,type) => <button onClick={()=>openAdd(type)} style={{marginBottom:12,background:"#185fa5",color:"white",border:"none",padding:"6px 16px",borderRadius:6}}>+ {label}</button>;
+  const addBtn = (label,type,color="#2E75B6") => <button onClick={()=>openAdd(type)} style={{marginBottom:15,background:color,color:"white",border:"none",padding:"8px 18px",borderRadius:6,fontWeight:bold,fontSize:14}}>+ {label}</button>;
 
   const actionBtns = (type,row) => (
-    <td style={td}>
-      <button onClick={()=>openEdit(type,row)} style={{marginRight:6,fontSize:12,padding:"2px 10px"}}>編輯</button>
-      <button onClick={()=>del(type,row.id)} style={{fontSize:12,padding:"2px 10px",color:"#a32d2d",borderColor:"#f7c1c1"}}>刪除</button>
+    <td>
+      <button onClick={()=>openEdit(type,row)} style={{marginRight:6,fontSize:11,padding:"3px 8px"}}>編輯</button>
+      <button onClick={()=>del(type,row.id)} style={{fontSize:11,padding:"3px 8px",color:"#a32d2d",borderColor:"#f7c1c1"}}>刪除</button>
     </td>
   );
 
-  if (loading) return (
-    <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",gap:14,color:"#888"}}>
-      <div style={{width:30,height:30,border:"3px solid #eee",borderTop:"3px solid #185fa5",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
-      從 Google 試算表載入資料中…
+  if (loading && data.products.length === 0) return (
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",color:"#2E75B6", fontWeight:bold}}>
+      <div style={{width:40,height:40,border:"4px solid #eee",borderTop:"4px solid #2E75B6",borderRadius:"50%",animation:"spin 0.8s linear infinite",marginBottom:15}}/>
+      連接資料庫中，請稍候...
     </div>
   );
 
   return (
-    <div style={{minHeight:"100vh",background:"#f5f5f5"}}>
+    <div style={{minHeight:"100vh"}}>
       {toast && <Toast msg={toast.msg} type={toast.type}/>}
-      {saving && <div style={{position:"fixed",top:0,left:0,right:0,height:3,background:"#185fa5",zIndex:3000,animation:"progress 1.5s ease-out forwards"}}/>}
+      {saving && <div style={{position:"fixed",top:0,left:0,right:0,height:4,background:"#70AD47",zIndex:3000,animation:"progress 1.5s ease-out forwards"}}/>}
 
-      <div style={{background:"white",borderBottom:"1px solid #eee",padding:"10px 20px",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",position:"sticky",top:0,zIndex:100,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
-        <span style={{fontWeight:500,fontSize:15,color:"#185fa5",marginRight:8}}>APW 進銷存</span>
+      {/* 導覽列 */}
+      <div style={{background:"#1F3864",padding:"12px 20px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",position:"sticky",top:0,zIndex:100}}>
+        <span style={{fontWeight:bold,fontSize:18,color:"white",marginRight:15}}>🏪 APW 進銷存</span>
         {TABS.map(t=>(
-          <button key={t} onClick={()=>setTab(t)} style={{fontSize:13,padding:"5px 14px",background:tab===t?"#e6f1fb":"transparent",color:tab===t?"#185fa5":"#666",border:tab===t?"1px solid #b5d4f4":"1px solid transparent",borderRadius:20,fontWeight:tab===t?500:400}}>
+          <button key={t} onClick={()=>setTab(t)} style={{fontSize:14,padding:"6px 16px",background:tab===t?"#2E75B6":"transparent",color:tab===t?"white":"#AEC9E6",border:"none",borderRadius:20,fontWeight:bold}}>
             {t}
           </button>
         ))}
-        <button onClick={loadAll} style={{marginLeft:"auto",fontSize:12,padding:"4px 12px",color:"#666"}}>↺ 重新整理</button>
+        <button onClick={loadAll} style={{marginLeft:"auto",fontSize:12,padding:"5px 12px",color:"white",background:"rgba(255,255,255,0.2)",border:"none"}}>↻ 刷新資料</button>
       </div>
 
-      <div style={{padding:"1.25rem 1.5rem",maxWidth:1100,margin:"0 auto"}}>
+      <div style={{padding:"20px",maxWidth:1200,margin:"0 auto"}}>
 
-        {tab==="儀表板" && (
+        {/* 📊 戰情室 (報表) */}
+        {tab==="戰情室(報表)" && (
           <div>
-            <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:"1.25rem"}}>
-              {sc("總銷售額",`NT$ ${fmt(totalRevenue)}`,"#185fa5")}
-              {sc("毛利",`NT$ ${fmt(grossProfit)}`,grossProfit>=0?"#3b6d11":"#a32d2d")}
-              {sc("進貨金額",`NT$ ${fmt(totalCost)}`)}
-              {sc("產品種類",data.products.length)}
-              {sc("低庫存警示",lowStock.length,lowStock.length>0?"#a32d2d":"#1a1a1a")}
+            <div style={{display:"flex",gap:12,marginBottom:"20px",alignItems:"center",background:"white",padding:"15px",borderRadius:8,boxShadow:"0 2px 5px rgba(0,0,0,0.05)"}}>
+              <span style={{fontWeight:bold}}>📅 篩選區間：</span>
+              <input type="date" value={dateRange.from} onChange={e=>setDateRange(d=>({...d,from:e.target.value}))} style={{width:140}}/>
+              <span>至</span>
+              <input type="date" value={dateRange.to} onChange={e=>setDateRange(d=>({...d,to:e.target.value}))} style={{width:140}}/>
             </div>
-            {lowStock.length>0&&(
-              <div style={{background:"#fcebeb",border:"1px solid #f7c1c1",borderRadius:8,padding:"10px 14px",marginBottom:"1.25rem"}}>
-                <span style={{color:"#a32d2d",fontSize:13,fontWeight:500}}>⚠ 低庫存產品：</span>
-                {lowStock.map(p=><span key={p.id} style={{marginLeft:10,fontSize:13,color:"#a32d2d"}}>{p.name}（剩 {p.stock}）</span>)}
-              </div>
-            )}
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
-              <div style={{background:"white",border:"1px solid #eee",borderRadius:12,padding:"1rem"}}>
-                <div style={{fontSize:13,fontWeight:500,marginBottom:12}}>各通路銷售額</div>
-                {salesByChannel.length===0&&<div style={{fontSize:12,color:"#aaa"}}>暫無資料</div>}
-                {salesByChannel.map(([name,val])=>(
-                  <div key={name} style={{marginBottom:8}}>
-                    <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:3}}>
-                      <span>{name}</span><span style={{color:"#888"}}>NT$ {fmt(val)}</span>
-                    </div>
-                    <div style={{background:"#f0f0f0",borderRadius:4,height:6}}>
-                      <div style={{width:`${Math.round(val/maxCh*100)}%`,background:"#185fa5",borderRadius:4,height:6}}/>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div style={{background:"white",border:"1px solid #eee",borderRadius:12,padding:"1rem"}}>
-                <div style={{fontSize:13,fontWeight:500,marginBottom:12}}>各產品銷售額</div>
-                {salesByProduct.length===0&&<div style={{fontSize:12,color:"#aaa"}}>暫無資料</div>}
+
+            <div style={{display:"flex",gap:15,flexWrap:"wrap",marginBottom:"25px"}}>
+              {sc("💰 總營業額", `NT$ ${fmt(totalRev)}`, "#2E75B6")}
+              {sc("📈 訂單總毛利", `NT$ ${fmt(totalProfit)}`, "#70AD47")}
+              {sc("📊 整體毛利率", `${overallMargin}%`, "#70AD47")}
+              {sc("💸 營運總費用", `NT$ ${fmt(totalExpAmt)}`, "#C00000")}
+              {sc("🏆 公司真實淨利", `NT$ ${fmt(netProfit)}`, "white", "#1F3864")}
+            </div>
+
+            <div style={{display:"grid",gridTemplateColumns:"1fr",gap:20}}>
+              <div style={{background:"white",borderRadius:12,padding:"20px",boxShadow:"0 2px 5px rgba(0,0,0,0.05)"}}>
+                <div style={{fontSize:16,fontWeight:bold,marginBottom:15,color:"#444"}}>🔥 熱銷商品 TOP 10 (依營收)</div>
+                {salesByProduct.length===0&&<div style={{color:"#aaa"}}>區間內無銷售資料</div>}
                 {salesByProduct.map(([name,val])=>(
-                  <div key={name} style={{marginBottom:8}}>
-                    <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:3}}>
-                      <span>{name}</span><span style={{color:"#888"}}>NT$ {fmt(val)}</span>
+                  <div key={name} style={{marginBottom:10}}>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:4,fontWeight:bold}}>
+                      <span>{name}</span><span style={{color:"#2E75B6"}}>NT$ {fmt(val)}</span>
                     </div>
-                    <div style={{background:"#f0f0f0",borderRadius:4,height:6}}>
-                      <div style={{width:`${Math.round(val/maxPr*100)}%`,background:"#0f6e56",borderRadius:4,height:6}}/>
+                    <div style={{background:"#f0f0f0",borderRadius:4,height:8}}>
+                      <div style={{width:`${Math.round(val/(salesByProduct[0][1]||1)*100)}%`,background:"#70AD47",borderRadius:4,height:8}}/>
                     </div>
                   </div>
                 ))}
@@ -252,78 +297,46 @@ function App() {
           </div>
         )}
 
-        {tab==="廠商"&&(
-          <div>
-            {addBtn("新增廠商","vendors")}
-            <div style={{background:"white",borderRadius:10,border:"1px solid #eee",overflow:"hidden"}}>
-              <table><thead><tr><th style={th}>名稱</th><th style={th}>聯絡人</th><th style={th}>電話</th><th style={th}>操作</th></tr></thead>
-              <tbody>{data.vendors.map(v=>(
-                <tr key={v.id}><td style={td}>{v.name}</td><td style={td}>{v.contact}</td><td style={td}>{v.phone}</td>{actionBtns("vendors",v)}</tr>
-              ))}</tbody></table>
-            </div>
-          </div>
-        )}
-
+        {/* 📦 產品主檔 (雙倉版) */}
         {tab==="產品"&&(
           <div>
             {addBtn("新增產品","products")}
-            <div style={{background:"white",borderRadius:10,border:"1px solid #eee",overflow:"hidden"}}>
-              <table><thead><tr><th style={th}>名稱</th><th style={th}>類別</th><th style={th}>成本</th><th style={th}>售價</th><th style={th}>庫存</th><th style={th}>操作</th></tr></thead>
-              <tbody>{data.products.map(p=>(
+            <div style={{borderRadius:10,overflow:"auto",boxShadow:"0 2px 5px rgba(0,0,0,0.05)"}}>
+              <table><thead><tr><th>代碼</th><th>名稱</th><th>類別</th><th>成本</th><th>售價</th><th>南京</th><th>民權</th><th>總庫存</th><th>操作</th></tr></thead>
+              <tbody>{data.products.map(p=>{
+                const total = (Number(p.nj)||0) + (Number(p.mq)||0);
+                return(
                 <tr key={p.id}>
-                  <td style={td}>{p.name}</td><td style={td}>{p.category}</td>
-                  <td style={td}>NT$ {fmt(p.cost)}</td><td style={td}>NT$ {fmt(p.price)}</td>
-                  <td style={td}><Badge color={+p.stock<=5?"red":+p.stock<=20?"amber":"green"}>{p.stock}</Badge></td>
+                  <td style={td}>{p.code}</td><td style={{...td,fontWeight:bold}}>{p.name}</td><td style={td}><Badge color="blue">{p.category}</Badge></td>
+                  <td style={td}>${fmt(p.cost)}</td><td style={td}>${fmt(p.price)}</td>
+                  <td style={td}>{p.nj}</td><td style={td}>{p.mq}</td>
+                  <td style={td}><Badge color={total<=5?"red":total<=15?"amber":"green"}>{total}</Badge></td>
                   {actionBtns("products",p)}
-                </tr>
-              ))}</tbody></table>
-            </div>
-          </div>
-        )}
-
-        {tab==="通路"&&(
-          <div>
-            {addBtn("新增通路","channels")}
-            <div style={{background:"white",borderRadius:10,border:"1px solid #eee",overflow:"hidden"}}>
-              <table><thead><tr><th style={th}>通路名稱</th><th style={th}>操作</th></tr></thead>
-              <tbody>{data.channels.map(c=>(
-                <tr key={c.id}><td style={td}>{c.name}</td>{actionBtns("channels",c)}</tr>
-              ))}</tbody></table>
-            </div>
-          </div>
-        )}
-
-        {tab==="進貨"&&(
-          <div>
-            {addBtn("新增進貨","purchases")}
-            <div style={{background:"white",borderRadius:10,border:"1px solid #eee",overflow:"auto"}}>
-              <table><thead><tr><th style={th}>日期</th><th style={th}>廠商</th><th style={th}>品名</th><th style={th}>數量</th><th style={th}>單價</th><th style={th}>小計</th><th style={th}>操作</th></tr></thead>
-              <tbody>{data.purchases.map(p=>{
-                const v=data.vendors.find(x=>String(x.id)===String(p.vendorId));
-                const pr=data.products.find(x=>String(x.id)===String(p.productId));
-                return(<tr key={p.id}>
-                  <td style={td}>{p.date}</td><td style={td}>{v?.name}</td><td style={td}>{pr?.name}</td>
-                  <td style={td}>{p.qty}</td><td style={td}>NT$ {fmt(p.unitCost)}</td>
-                  <td style={td}>NT$ {fmt(p.qty*p.unitCost)}</td>
-                  {actionBtns("purchases",p)}
-                </tr>);
+                </tr>)
               })}</tbody></table>
             </div>
           </div>
         )}
 
+        {/* 🛒 銷售明細 (完整財務版) */}
         {tab==="銷貨"&&(
           <div>
-            {addBtn("新增銷貨","sales")}
-            <div style={{background:"white",borderRadius:10,border:"1px solid #eee",overflow:"auto"}}>
-              <table><thead><tr><th style={th}>日期</th><th style={th}>通路</th><th style={th}>品名</th><th style={th}>數量</th><th style={th}>單價</th><th style={th}>小計</th><th style={th}>操作</th></tr></thead>
+            {addBtn("新增銷售單","sales","#70AD47")}
+            <div style={{borderRadius:10,overflow:"auto",boxShadow:"0 2px 5px rgba(0,0,0,0.05)"}}>
+              <table style={{minWidth:1000}}><thead><tr><th>日期</th><th>單據</th><th>通路</th><th>商品</th><th>量</th><th>單價</th><th>總價</th><th>手續費</th><th>成本</th><th>毛利</th><th>毛利率</th><th>操作</th></tr></thead>
               <tbody>{data.sales.map(s=>{
                 const ch=data.channels.find(x=>String(x.id)===String(s.channelId));
                 const pr=data.products.find(x=>String(x.id)===String(s.productId));
-                return(<tr key={s.id}>
-                  <td style={td}>{s.date}</td><td style={td}>{ch?.name}</td><td style={td}>{pr?.name}</td>
-                  <td style={td}>{s.qty}</td><td style={td}>NT$ {fmt(s.unitPrice)}</td>
-                  <td style={td}>NT$ {fmt(s.qty*s.unitPrice)}</td>
+                const isRet = s.docType === "退貨";
+                return(<tr key={s.id} style={{background:isRet?"#fff5f5":""}}>
+                  <td style={td}>{s.date}</td>
+                  <td style={td}><Badge color={isRet?"red":"green"}>{s.docType}</Badge><br/><span style={{fontSize:10,color:"#888"}}>{s.order}</span></td>
+                  <td style={td}>{ch?.name}</td><td style={td}>{pr?.name}</td>
+                  <td style={td}>{s.qty}</td><td style={td}>${fmt(s.unitPrice)}</td>
+                  <td style={td}>${fmt(s.amount)}</td><td style={td}>${fmt(s.fee)}</td>
+                  <td style={td}>${fmt(s.totalCost)}</td>
+                  <td style={{...td, color:s.profit<0?"red":"green", fontWeight:bold}}>${fmt(s.profit)}</td>
+                  <td style={td}>{s.margin}%</td>
                   {actionBtns("sales",s)}
                 </tr>);
               })}</tbody></table>
@@ -331,142 +344,182 @@ function App() {
           </div>
         )}
 
-        {tab==="退貨"&&(
+        {/* 📥 進貨明細 */}
+        {tab==="進貨"&&(
           <div>
-            {addBtn("新增退貨","returns")}
-            {data.returns.length===0
-              ?<div style={{color:"#aaa",fontSize:13,marginTop:12}}>目前無退貨記錄</div>
-              :<div style={{background:"white",borderRadius:10,border:"1px solid #eee",overflow:"hidden"}}>
-                <table><thead><tr><th style={th}>日期</th><th style={th}>類型</th><th style={th}>品名</th><th style={th}>數量</th><th style={th}>原因</th><th style={th}>操作</th></tr></thead>
-                <tbody>{data.returns.map(r=>{
-                  const pr=data.products.find(x=>String(x.id)===String(r.productId));
-                  return(<tr key={r.id}>
-                    <td style={td}>{r.date}</td><td style={td}>{r.type}</td>
-                    <td style={td}>{pr?.name}</td><td style={td}>{r.qty}</td><td style={td}>{r.reason}</td>
-                    {actionBtns("returns",r)}
-                  </tr>);
-                })}</tbody></table>
-              </div>
-            }
+            {addBtn("新增進貨單","purchases")}
+            <div style={{borderRadius:10,overflow:"auto",boxShadow:"0 2px 5px rgba(0,0,0,0.05)"}}>
+              <table><thead><tr><th>日期</th><th>單號</th><th>廠商</th><th>商品</th><th>南京入</th><th>民權入</th><th>單價</th><th>小計</th><th>操作</th></tr></thead>
+              <tbody>{data.purchases.map(p=>{
+                const v=data.vendors.find(x=>String(x.id)===String(p.vendorId));
+                const pr=data.products.find(x=>String(x.id)===String(p.productId));
+                return(<tr key={p.id}>
+                  <td style={td}>{p.date}</td><td style={td}>{p.order}</td>
+                  <td style={td}>{v?.name}</td><td style={{...td,fontWeight:bold}}>{pr?.name}</td>
+                  <td style={td}>{p.nj}</td><td style={td}>{p.mq}</td>
+                  <td style={td}>${fmt(p.unitCost)}</td><td style={td}>${fmt(p.amount)}</td>
+                  {actionBtns("purchases",p)}
+                </tr>);
+              })}</tbody></table>
+            </div>
           </div>
         )}
 
-        {tab==="報表"&&(
+        {/* 💸 費用明細 */}
+        {tab==="費用"&&(
           <div>
-            <div style={{display:"flex",gap:12,marginBottom:"1.25rem",alignItems:"flex-end",flexWrap:"wrap"}}>
-              <Field label="起始日期"><input type="date" value={dateRange.from} onChange={e=>setDateRange(d=>({...d,from:e.target.value}))} style={{width:160}}/></Field>
-              <Field label="結束日期"><input type="date" value={dateRange.to} onChange={e=>setDateRange(d=>({...d,to:e.target.value}))} style={{width:160}}/></Field>
-            </div>
-            <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:"1.5rem"}}>
-              {sc("銷售總額",`NT$ ${fmt(totalRevenue)}`,"#185fa5")}
-              {sc("銷貨成本",`NT$ ${fmt(totalSalesCost)}`)}
-              {sc("毛利",`NT$ ${fmt(grossProfit)}`,grossProfit>=0?"#3b6d11":"#a32d2d")}
-              {sc("毛利率",`${totalRevenue?Math.round(grossProfit/totalRevenue*100):0}%`,grossProfit>=0?"#3b6d11":"#a32d2d")}
-              {sc("進貨金額",`NT$ ${fmt(totalCost)}`)}
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:"1.5rem"}}>
-              <div style={{background:"white",border:"1px solid #eee",borderRadius:12,padding:"1rem"}}>
-                <div style={{fontSize:13,fontWeight:500,marginBottom:10}}>通路銷售統計</div>
-                <table><thead><tr><th style={th}>通路</th><th style={th}>銷售額</th></tr></thead>
-                <tbody>{salesByChannel.map(([n,v])=><tr key={n}><td style={td}>{n}</td><td style={td}>NT$ {fmt(v)}</td></tr>)}</tbody></table>
-              </div>
-              <div style={{background:"white",border:"1px solid #eee",borderRadius:12,padding:"1rem"}}>
-                <div style={{fontSize:13,fontWeight:500,marginBottom:10}}>產品銷售統計</div>
-                <table><thead><tr><th style={th}>產品</th><th style={th}>銷售額</th></tr></thead>
-                <tbody>{salesByProduct.map(([n,v])=><tr key={n}><td style={td}>{n}</td><td style={td}>NT$ {fmt(v)}</td></tr>)}</tbody></table>
-              </div>
-            </div>
-            <div style={{background:"white",border:"1px solid #eee",borderRadius:12,padding:"1rem"}}>
-              <div style={{fontSize:13,fontWeight:500,marginBottom:10}}>庫存統計</div>
-              <table><thead><tr><th style={th}>產品</th><th style={th}>類別</th><th style={th}>成本</th><th style={th}>售價</th><th style={th}>庫存</th><th style={th}>庫存價值</th></tr></thead>
-              <tbody>{data.products.map(p=>(
-                <tr key={p.id}>
-                  <td style={td}>{p.name}</td><td style={td}>{p.category}</td>
-                  <td style={td}>NT$ {fmt(p.cost)}</td><td style={td}>NT$ {fmt(p.price)}</td>
-                  <td style={td}><Badge color={+p.stock<=5?"red":+p.stock<=20?"amber":"green"}>{p.stock}</Badge></td>
-                  <td style={td}>NT$ {fmt(p.cost*p.stock)}</td>
-                </tr>
+            {addBtn("新增營運費用","expenses","#E36C0A")}
+            <div style={{borderRadius:10,overflow:"hidden",boxShadow:"0 2px 5px rgba(0,0,0,0.05)"}}>
+              <table><thead><tr><th>日期</th><th>費用類別</th><th>金額</th><th>備註</th><th>操作</th></tr></thead>
+              <tbody>{data.expenses.map(e=>(
+                <tr key={e.id}><td style={td}>{e.date}</td><td style={td}><Badge color="amber">{e.category}</Badge></td><td style={{...td,color:"#C00000",fontWeight:bold}}>${fmt(e.amount)}</td><td style={td}>{e.note}</td>{actionBtns("expenses",e)}</tr>
               ))}</tbody></table>
             </div>
           </div>
         )}
+
+        {/* 🏪 通路主檔 */}
+        {tab==="通路"&&(
+          <div>
+            {addBtn("新增通路","channels")}
+            <div style={{borderRadius:10,overflow:"hidden",boxShadow:"0 2px 5px rgba(0,0,0,0.05)"}}>
+              <table><thead><tr><th>通路名稱</th><th>抽成費率 (%)</th><th>固定費用 (元)</th><th>操作</th></tr></thead>
+              <tbody>{data.channels.map(c=>(
+                <tr key={c.id}><td style={td}>{c.name}</td><td style={td}>{c.rate}%</td><td style={td}>${c.fixed}</td>{actionBtns("channels",c)}</tr>
+              ))}</tbody></table>
+            </div>
+          </div>
+        )}
+        
+        {/* 退貨與廠商保持簡潔顯示 */}
+        {tab==="退貨"&&( <div style={{padding:"20px", background:"white", borderRadius:8}}>💡 提示：在「新增銷售單」時，將單據類型改為「退貨」即可。紀錄會合併在「銷貨」清單中以便精算毛利。</div> )}
+        {tab==="廠商"&&( <div>{addBtn("新增廠商","vendors")}<div style={{borderRadius:10,overflow:"hidden",boxShadow:"0 2px 5px rgba(0,0,0,0.05)"}}><table><thead><tr><th>名稱</th><th>聯絡人</th><th>電話</th><th>操作</th></tr></thead><tbody>{data.vendors.map(v=>(<tr key={v.id}><td style={td}>{v.name}</td><td style={td}>{v.contact}</td><td style={td}>{v.phone}</td>{actionBtns("vendors",v)}</tr>))}</tbody></table></div></div> )}
+
       </div>
 
+      {/* 🔮 彈出視窗 (Modal Forms) */}
       {modal&&(
-        <Modal title={{"vendors":"廠商","products":"產品","channels":"通路","purchases":"進貨","sales":"銷貨","returns":"退貨"}[modal.type]+(modal.mode==="add"?" — 新增":" — 編輯")} onClose={closeModal}>
-          {modal.type==="vendors"&&<>
-            <Field label="廠商名稱"><input style={inp} value={form.name||""} onChange={setF("name")}/></Field>
-            <Field label="聯絡人"><input style={inp} value={form.contact||""} onChange={setF("contact")}/></Field>
-            <Field label="電話"><input style={inp} value={form.phone||""} onChange={setF("phone")}/></Field>
-          </>}
+        <Modal title={{"vendors":"🏢 廠商","products":"📦 產品","channels":"🏪 通路","purchases":"📥 進貨單","sales":"🛒 銷售單","expenses":"💸 費用"}[modal.type]+(modal.mode==="add"?" — 新增":" — 編輯")} onClose={closeModal}>
+          
           {modal.type==="products"&&<>
-            <Field label="產品名稱"><input style={inp} value={form.name||""} onChange={setF("name")}/></Field>
-            <Field label="類別"><input style={inp} value={form.category||""} onChange={setF("category")}/></Field>
-            <Field label="成本"><input type="number" style={inp} value={form.cost||""} onChange={setF("cost")}/></Field>
-            <Field label="售價"><input type="number" style={inp} value={form.price||""} onChange={setF("price")}/></Field>
-            <Field label="庫存"><input type="number" style={inp} value={form.stock||""} onChange={setF("stock")}/></Field>
+            <Field label="商品代碼"><input value={form.code||""} onChange={setF("code")}/></Field>
+            <Field label="產品名稱"><input value={form.name||""} onChange={setF("name")}/></Field>
+            <Field label="類別"><input value={form.category||""} onChange={setF("category")} placeholder="例如：電動磨豆機" /></Field>
+            <div style={{display:"flex", gap:10}}>
+                <Field label="成本"><input type="number" value={form.cost||""} onChange={setF("cost")}/></Field>
+                <Field label="售價"><input type="number" value={form.price||""} onChange={setF("price")}/></Field>
+            </div>
+            <div style={{display:"flex", gap:10, background:"#f8f9fa", padding:10, borderRadius:8}}>
+                <Field label="南京庫存"><input type="number" value={form.nj||0} onChange={setF("nj")}/></Field>
+                <Field label="民權庫存"><input type="number" value={form.mq||0} onChange={setF("mq")}/></Field>
+            </div>
           </>}
+
           {modal.type==="channels"&&<>
-            <Field label="通路名稱"><input style={inp} value={form.name||""} onChange={setF("name")}/></Field>
+            <Field label="通路名稱"><input value={form.name||""} onChange={setF("name")}/></Field>
+            <div style={{display:"flex", gap:10}}>
+                <Field label="手續費率 (%)"><input type="number" step="0.1" value={form.rate||""} onChange={setF("rate")} placeholder="例如: 8.5"/></Field>
+                <Field label="固定費用 (元)"><input type="number" value={form.fixed||""} onChange={setF("fixed")} placeholder="例如: 60"/></Field>
+            </div>
           </>}
+
           {modal.type==="purchases"&&<>
-            <Field label="日期"><input type="date" style={inp} value={form.date||""} onChange={setF("date")}/></Field>
-            <Field label="廠商">
-              <select style={inp} value={form.vendorId||""} onChange={setF("vendorId")}>
-                <option value="">請選擇</option>
-                {data.vendors.map(v=><option key={v.id} value={v.id}>{v.name}</option>)}
-              </select>
-            </Field>
+            <Field label="進貨單號"><input value={form.order||""} onChange={setF("order")} placeholder="留空自動產生"/></Field>
+            <div style={{display:"flex", gap:10}}>
+                <Field label="日期"><input type="date" value={form.date||""} onChange={setF("date")}/></Field>
+                <Field label="廠商">
+                  <select value={form.vendorId||""} onChange={setF("vendorId")}>
+                    <option value="">選擇廠商...</option>{data.vendors.map(v=><option key={v.id} value={v.id}>{v.name}</option>)}
+                  </select>
+                </Field>
+            </div>
             <Field label="產品">
-              <select style={inp} value={form.productId||""} onChange={e=>{const p=data.products.find(x=>String(x.id)===e.target.value);setForm(f=>({...f,productId:e.target.value,category:p?.category||"",unitCost:p?.cost||""}));}}>
-                <option value="">請選擇</option>
-                {data.products.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+              <select value={form.productId||""} onChange={e=>{
+                  const p=data.products.find(x=>String(x.id)===e.target.value);
+                  setForm(f=>({...f, productId:e.target.value, category:p?.category||"", unitCost:p?.cost||""}));
+                  // 觸發重新計算
+                  handlePurchaseCalc("productId", e.target.value);
+              }}>
+                <option value="">選擇商品...</option>{data.products.map(p=><option key={p.id} value={p.id}>[{p.category}] {p.name}</option>)}
               </select>
             </Field>
-            <Field label="類別"><input style={inp} value={form.category||""} onChange={setF("category")}/></Field>
-            <Field label="數量"><input type="number" style={inp} value={form.qty||""} onChange={setF("qty")}/></Field>
-            <Field label="單價（成本）"><input type="number" style={inp} value={form.unitCost||""} onChange={setF("unitCost")}/></Field>
-            {form.qty&&form.unitCost&&<div style={{fontSize:13,color:"#888",marginBottom:12}}>小計：NT$ {fmt(form.qty*form.unitCost)}</div>}
+            <div style={{display:"flex", gap:10, background:"#eef5fc", padding:10, borderRadius:8}}>
+                <Field label="南京入庫量"><input type="number" value={form.nj||""} onChange={e=>handlePurchaseCalc("nj", e.target.value)}/></Field>
+                <Field label="民權入庫量"><input type="number" value={form.mq||""} onChange={e=>handlePurchaseCalc("mq", e.target.value)}/></Field>
+            </div>
+            <div style={{display:"flex", gap:10, marginTop:10}}>
+                <Field label="單價(成本)"><input type="number" value={form.unitCost||""} onChange={e=>handlePurchaseCalc("unitCost", e.target.value)}/></Field>
+                <Field label="進貨小計"><input type="number" value={form.amount||0} readOnly/></Field>
+            </div>
+            <Field label="備註"><input value={form.note||""} onChange={setF("note")}/></Field>
           </>}
+
           {modal.type==="sales"&&<>
-            <Field label="日期"><input type="date" style={inp} value={form.date||""} onChange={setF("date")}/></Field>
-            <Field label="通路">
-              <select style={inp} value={form.channelId||""} onChange={setF("channelId")}>
-                <option value="">請選擇</option>
-                {data.channels.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </Field>
+            <div style={{display:"flex", gap:10}}>
+                <Field label="單據類型">
+                    <select value={form.docType||"正常銷售"} onChange={setF("docType")} style={{color:form.docType==="退貨"?"red":"#3b6d11", fontWeight:"bold"}}>
+                        <option value="正常銷售">🟢 正常銷售</option><option value="退貨">🔴 退貨 / 取消</option>
+                    </select>
+                </Field>
+                <Field label="日期"><input type="date" value={form.date||""} onChange={setF("date")}/></Field>
+            </div>
+            <div style={{display:"flex", gap:10}}>
+                <Field label="訂單編號"><input value={form.order||""} onChange={setF("order")} placeholder="留空自動產生"/></Field>
+                <Field label="銷售通路">
+                  <select value={form.channelId||""} onChange={e=>handleSaleCalc("channelId", e.target.value)}>
+                    <option value="">選擇通路...</option>{data.channels.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </Field>
+            </div>
             <Field label="產品">
-              <select style={inp} value={form.productId||""} onChange={e=>{const p=data.products.find(x=>String(x.id)===e.target.value);setForm(f=>({...f,productId:e.target.value,category:p?.category||"",unitPrice:p?.price||""}));}}>
-                <option value="">請選擇</option>
-                {data.products.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+              <select value={form.productId||""} onChange={e=>{
+                  const p=data.products.find(x=>String(x.id)===e.target.value);
+                  handleSaleCalc("productId", e.target.value);
+                  setForm(f=>({...f, category:p?.category||"", unitPrice:p?.price||""}));
+                  // 延遲一下讓 state 更新後重算
+                  setTimeout(()=>handleSaleCalc("unitPrice", p?.price||0), 50);
+              }}>
+                <option value="">選擇商品...</option>{data.products.map(p=><option key={p.id} value={p.id}>[{p.category}] {p.name}</option>)}
               </select>
             </Field>
-            <Field label="類別"><input style={inp} value={form.category||""} onChange={setF("category")}/></Field>
-            <Field label="數量"><input type="number" style={inp} value={form.qty||""} onChange={setF("qty")}/></Field>
-            <Field label="單價（售價）"><input type="number" style={inp} value={form.unitPrice||""} onChange={setF("unitPrice")}/></Field>
-            {form.qty&&form.unitPrice&&<div style={{fontSize:13,color:"#888",marginBottom:12}}>小計：NT$ {fmt(form.qty*form.unitPrice)}</div>}
+            <div style={{display:"flex", gap:10}}>
+                <Field label="數量"><input type="number" value={form.qty||""} onChange={e=>handleSaleCalc("qty", e.target.value)}/></Field>
+                <Field label="單價(售價)"><input type="number" value={form.unitPrice||""} onChange={e=>handleSaleCalc("unitPrice", e.target.value)}/></Field>
+                <Field label="總價"><input type="number" value={form.amount||0} readOnly/></Field>
+            </div>
+            <div style={{display:"flex", gap:10, background:"#fff5eb", padding:10, borderRadius:8}}>
+                <Field label="預估手續費"><input type="number" value={form.fee||0} onChange={e=>handleSaleCalc("fee", e.target.value)} title="可手動修改"/></Field>
+                <Field label="系統算毛利"><input type="number" value={form.profit||0} readOnly style={{color:form.profit<0?"red":"#3b6d11", fontWeight:"bold"}}/></Field>
+            </div>
+            <Field label="備註"><input value={form.note||""} onChange={setF("note")}/></Field>
           </>}
-          {modal.type==="returns"&&<>
-            <Field label="日期"><input type="date" style={inp} value={form.date||""} onChange={setF("date")}/></Field>
-            <Field label="退貨類型">
-              <select style={inp} value={form.type||""} onChange={setF("type")}>
-                <option value="">請選擇</option>
-                <option value="進貨退回">進貨退回</option>
-                <option value="銷貨退回">銷貨退回</option>
-              </select>
+
+          {modal.type==="expenses"&&<>
+            <Field label="日期"><input type="date" value={form.date||""} onChange={setF("date")}/></Field>
+            <Field label="費用類別">
+                <select value={form.category||""} onChange={setF("category")}>
+                    <option value="">請選擇...</option>
+                    <option value="廣告行銷費">廣告行銷費 (Meta/蝦皮等)</option>
+                    <option value="包裝耗材費">包裝耗材費 (紙箱/膠帶等)</option>
+                    <option value="運費支出">運費支出</option>
+                    <option value="軟體訂閱費">軟體訂閱費</option>
+                    <option value="辦公室租金">辦公室租金</option>
+                    <option value="其他雜支">其他雜支</option>
+                </select>
             </Field>
-            <Field label="產品">
-              <select style={inp} value={form.productId||""} onChange={setF("productId")}>
-                <option value="">請選擇</option>
-                {data.products.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-            </Field>
-            <Field label="數量"><input type="number" style={inp} value={form.qty||""} onChange={setF("qty")}/></Field>
-            <Field label="原因"><input style={inp} value={form.reason||""} onChange={setF("reason")}/></Field>
+            <Field label="金額"><input type="number" value={form.amount||""} onChange={setF("amount")}/></Field>
+            <Field label="備註"><input value={form.note||""} onChange={setF("note")}/></Field>
           </>}
-          <button onClick={()=>save(modal.type)} disabled={saving} style={{width:"100%",marginTop:8,background:"#185fa5",color:"white",border:"none",padding:"8px",borderRadius:6,fontSize:14}}>
-            {saving?"儲存中…":"儲存"}
+
+          {/* Vendors */}
+          {modal.type==="vendors"&&<>
+            <Field label="廠商名稱"><input value={form.name||""} onChange={setF("name")}/></Field>
+            <Field label="聯絡人"><input value={form.contact||""} onChange={setF("contact")}/></Field>
+            <Field label="電話"><input value={form.phone||""} onChange={setF("phone")}/></Field>
+          </>}
+
+          <button onClick={()=>save(modal.type)} disabled={saving} style={{width:"100%",marginTop:15,background:"#2E75B6",color:"white",border:"none",padding:"10px",borderRadius:8,fontSize:15,fontWeight:"bold"}}>
+            {saving?"處理中...":"✅ 儲存確認"}
           </button>
         </Modal>
       )}
