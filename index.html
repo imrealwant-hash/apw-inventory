@@ -437,6 +437,7 @@ function App() {
               <select value={form.productId||""} onChange={e=>{
                   const p=data.products.find(x=>String(x.id)===e.target.value);
                   setForm(f=>({...f, productId:e.target.value, category:p?.category||"", unitCost:p?.cost||""}));
+                  // 觸發重新計算
                   handlePurchaseCalc("productId", e.target.value);
               }}>
                 <option value="">選擇商品...</option>{data.products.map(p=><option key={p.id} value={p.id}>[{p.category}] {p.name}</option>)}
@@ -475,6 +476,7 @@ function App() {
                   const p=data.products.find(x=>String(x.id)===e.target.value);
                   handleSaleCalc("productId", e.target.value);
                   setForm(f=>({...f, category:p?.category||"", unitPrice:p?.price||""}));
+                  // 延遲一下讓 state 更新後重算
                   setTimeout(()=>handleSaleCalc("unitPrice", p?.price||0), 50);
               }}>
                 <option value="">選擇商品...</option>{data.products.map(p=><option key={p.id} value={p.id}>[{p.category}] {p.name}</option>)}
@@ -509,6 +511,7 @@ function App() {
             <Field label="備註"><input value={form.note||""} onChange={setF("note")}/></Field>
           </>}
 
+          {/* Vendors */}
           {modal.type==="vendors"&&<>
             <Field label="廠商名稱"><input value={form.name||""} onChange={setF("name")}/></Field>
             <Field label="聯絡人"><input value={form.contact||""} onChange={setF("contact")}/></Field>
